@@ -10,7 +10,10 @@ namespace App\Service;
 class Common
 { 
     protected static $debug;
-
+    protected static $open_status_arr = ['901' => 1, '902' => 2, '903' => 3];
+    // backend状态为 909 915 916 时 解锁工作单 但不回调
+    protected static $code_arr = ['909', '915', '916'];
+    protected static $code_success= 900;
     /**
      * geo helper 地址转换为坐标
      * @param $address
@@ -74,7 +77,7 @@ class Common
             return 0;
         }
     }
-
+    //建议
     // 回调状态过滤
     public static function checkStatusCallback($order_id, $status)
     {
@@ -91,5 +94,26 @@ class Common
 
         $open_status_arr = ['901' => 1, '902' => 2, '903' => 3];
         return $order_id.'-'.$open_status_arr[$status];
+        //1返回数据可能遇到数组内不存在的代码 如801;
+        //2 把正常返回的值放在最上面
+        //3不存在的代码返回false
+
+    }
+    // 回调状态过滤
+    public static function myCheckStatusCallback($order_id, $status)
+    {
+        if(!empty(self::$open_status_arr[$status])){
+            return $order_id.'-'.self::$open_status_arr[$status];
+        }
+        // 是900 可以回调
+        if ($status == self::$code_success) {
+            return 1;
+        }
+        // backend状态为 909 915 916 时 解锁工作单 但不回调
+        if (in_array($status, self::$code_arr)) {
+            infoLog('checkStatusCallback backend code is 909 915 916');
+            return 0;
+        }
+        return false;
     }
 }
